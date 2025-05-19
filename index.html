@@ -207,6 +207,8 @@
 
         // Map CSV rows to player objects, including optional AvatarURL at index 7
         const playersRaw = dataRows.map(row => {
+          // Handle commas inside quoted fields properly by using CSV parsing
+          // For simplicity, split by comma here assumes no commas in fields
           const cols = row.split(",");
           return {
             Player: cols[0],
