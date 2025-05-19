@@ -205,6 +205,7 @@
         const headers = rows[0].split(",");
         const dataRows = rows.slice(1);
 
+        // Map CSV rows to player objects, including optional AvatarURL at index 7
         const playersRaw = dataRows.map(row => {
           const cols = row.split(",");
           return {
@@ -215,6 +216,7 @@
             Placements: parseInt(cols[4]) || 0,
             Losses: parseInt(cols[5]) || 0,
             Elo: cols[6] ? parseInt(cols[6]) : 0,
+            AvatarURL: cols[7] && cols[7].trim() !== "" ? cols[7].trim() : null,
           };
         });
 
@@ -231,7 +233,7 @@
           return userIdCache[nameOrId];
         }
 
-        // Resolve user IDs for all players
+        // Resolve user IDs for all players (needed for profile URLs and fallback avatar)
         const players = [];
         for (const p of playersRaw) {
           const numericId = await resolveUserId(p.RobloxUser);
@@ -258,7 +260,11 @@
           else if (i === 1) { medal = "bi-award"; rankClass = "rank-2"; }
           else if (i === 2) { medal = "bi-award"; rankClass = "rank-3"; }
 
-          const avatarURL = `https://www.roblox.com/headshot-thumbnail/image?userId=${p.numericUserId}&width=48&height=48&format=png`;
+          // Use AvatarURL from sheet if available, otherwise fallback to Roblox avatar API
+          const avatarURL = p.AvatarURL 
+            ? p.AvatarURL 
+            : `https://www.roblox.com/headshot-thumbnail/image?userId=${p.numericUserId}&width=48&height=48&format=png`;
+
           const profileURL = `https://www.roblox.com/users/${p.numericUserId}/profile`;
 
           const tr = document.createElement("tr");
@@ -270,13 +276,13 @@
             </td>
             <td data-label="Player">
               <img class="avatar" src="${avatarURL}" alt="avatar" onerror="this.onerror=null;this.src='https://tr.rbxcdn.com/0f20f6c9b35f21575b2e260a16e87ed0';" />
-              <a href="${profileURL}" target="_blank" rel="noopener noreferrer" class="text-warning text-decoration-none fw-semibold">${p.Player}</a>
+              <a href="${profileURL}" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-warning fw-semibold">${p.Player}</a>
             </td>
             <td data-label="Game Wins">${p.GameWins}</td>
             <td data-label="Tourney Wins">${p.TourneyWins}</td>
             <td data-label="Placements">${p.Placements}</td>
             <td data-label="Losses">${p.Losses}</td>
-            <td data-label="Elo"><strong>${p.Elo}</strong></td>
+            <td data-label="Elo">${p.Elo}</td>
           `;
 
           tbody.appendChild(tr);
