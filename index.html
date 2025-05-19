@@ -41,11 +41,10 @@
       <h3>🏆 Current Bracket</h3>
       <p>Embed or update bracket manually here (e.g. Challonge embed).</p>
     </div>
-    <div class="tab-pane fade" id="leaderboard">
+<div class="tab-pane fade" id="leaderboard">
   <h3>📊 Elo Leaderboard</h3>
-  <p>Current rankings based on wins, losses, and Elo.</p>
-
-  <table class="table table-dark table-striped table-bordered mt-3">
+  <p>Live rankings pulled from Google Sheets.</p>
+  <table class="table table-dark table-striped table-bordered mt-3" id="leaderboard-table">
     <thead>
       <tr>
         <th>#</th>
@@ -55,33 +54,38 @@
         <th>Elo</th>
       </tr>
     </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>PlayerOne</td>
-        <td>5</td>
-        <td>0</td>
-        <td>1520</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>PlayerTwo</td>
-        <td>4</td>
-        <td>1</td>
-        <td>1480</td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>PlayerThree</td>
-        <td>3</td>
-        <td>2</td>
-        <td>1425</td>
-      </tr>
-      <!-- Add more players as needed -->
+    <tbody><script>
+  const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2_wr_BqYz609qT5ajqqg7Dc9GIg0Y1fC9u26LnDWFuZbs_ItQfiRigpXkywopq5K4LuSRR25FaBAw/pub?output=csv";
+
+  async function loadLeaderboard() {
+    const response = await fetch(sheetURL);
+    const csvText = await response.text();
+    const rows = csvText.trim().split("\n").slice(1); // Skip header
+    const data = rows.map(r => r.split(","));
+
+    // Sort by Elo (descending)
+    data.sort((a, b) => parseInt(b[3]) - parseInt(a[3]));
+
+    const tbody = document.querySelector("#leaderboard-table tbody");
+    tbody.innerHTML = "";
+    data.forEach((row, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${row[0]}</td>
+        <td>${row[1]}</td>
+        <td>${row[2]}</td>
+        <td>${row[3]}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  loadLeaderboard();
+</script>
     </tbody>
   </table>
 </div>
-
     <div class="tab-pane fade" id="games">
       <h3>🕹️ Game Roster</h3>
       <p>List of games played in the tournament.</p>
