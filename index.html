@@ -151,9 +151,9 @@
 
   <div class="tab-content mt-4">
     <div class="tab-pane fade show active" id="bracket">
-      <h3>🏆 Current Bracket</h3>
-      <p>Embed your bracket or image here.</p>
-    </div>
+  <h3>🏆 Current Bracket</h3>
+  <div id="bracket-container" class="row g-4"></div>
+</div>
     <div class="tab-pane fade" id="leaderboard">
       <h3>📊 Elo Leaderboard</h3>
 
@@ -243,7 +243,64 @@
     }
 
     loadLeaderboard();
+<script>
+const bracketSheetURL = "https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_CSV_LINK_HERE/pub?output=csv";
 
+async function loadBracket() {
+  const res = await fetch(bracketSheetURL);
+  const csv = await res.text();
+  const rows = csv.trim().split("\n").map(r => r.split(","));
+  
+  // Separate data from both sheets
+  const header = rows[0];
+  const gameRows = rows.filter(r => r[0] === "GAME");
+  const playerRows = rows.filter(r => r[0] === "PLAYER");
+
+  const players = {};
+  playerRows.forEach(row => {
+    const [_, ref, name, id, avatar] = row;
+    players[ref] = {
+      name,
+      id,
+      avatar: avatar || `https://www.roblox.com/headshot-thumbnail/image?userId=${id}&width=48&height=48&format=png`
+    };
+  });
+
+  const container = document.getElementById("bracket-container");
+  container.innerHTML = "";
+
+  gameRows.forEach(row => {
+    const [_, gameId, gameName, gameImage, playingRefs, eliminatedRefs] = row;
+    const playing = playingRefs.split(",").map(r => r.trim()).filter(Boolean);
+    const eliminated = eliminatedRefs.split(",").map(r => r.trim());
+
+    container.innerHTML += `
+      <div class="col-md-6 col-lg-4">
+        <div class="card bg-dark text-light border-warning h-100 shadow">
+          <img src="${gameImage}" class="card-img-top" alt="${gameName}">
+          <div class="card-body">
+            <h5 class="card-title text-warning">${gameName}</h5>
+            <p class="card-text mb-2">Game ID: ${gameId}</p>
+            <strong>Players:</strong>
+            <ul class="list-group list-group-flush bg-dark">
+              ${playing.map(ref => {
+                const p = players[ref];
+                const isElim = eliminated.includes(ref);
+                return `<li class="list-group-item bg-dark text-${isElim ? 'danger' : 'light'}">
+                  <img src="${p?.avatar}" class="avatar me-2" />
+                  <a href="https://www.roblox.com/users/${p?.id}/profile" target="_blank" class="text-${isElim ? 'danger' : 'warning'}">${p?.name}</a>
+                  ${isElim ? '<span class="badge bg-danger ms-2">Eliminated</span>' : ''}
+                </li>`;
+              }).join("")}
+            </ul>
+          </div>
+        </div>
+      </div>`;
+  });
+}
+
+loadBracket();
+</script>
     // Tab switch click sound
     document.querySelectorAll('.nav-link').forEach(btn => {
       btn.addEventListener('click', () => {
