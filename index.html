@@ -150,10 +150,10 @@
   </ul>
 
   <div class="tab-content mt-4">
-<div class="tab-pane fade show active" id="bracket">
-  <h3>🏆 Current Bracket</h3>
-  <div id="games-container" class="row row-cols-1 row-cols-md-2 g-4"></div>
-</div>
+    <div class="tab-pane fade show active" id="bracket">
+      <h3>🏆 Current Bracket</h3>
+      <p>Embed your bracket or image here.</p>
+    </div>
     <div class="tab-pane fade" id="leaderboard">
       <h3>📊 Elo Leaderboard</h3>
 
@@ -185,7 +185,7 @@
 
     async function getUserId(username) {
       try {
-        const res = await fetch(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(username)}`);
+        const res = await fetch(https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(username)});
         const data = await res.json();
         return data?.Id || 0;
       } catch {
@@ -208,7 +208,7 @@
           Placements: +Placements,
           Losses: +Losses,
           Elo: +Elo || (+GameWins * 10 + +TourneyWins * 25 + +Placements * 15 - +Losses * 5),
-          AvatarURL: AvatarURL || `https://www.roblox.com/headshot-thumbnail/image?userId=${id}&width=48&height=48&format=png`,
+          AvatarURL: AvatarURL || https://www.roblox.com/headshot-thumbnail/image?userId=${id}&width=48&height=48&format=png,
           id
         };
       }));
@@ -222,89 +222,28 @@
       // Build podium
       const top3 = players.slice(0, 3);
       top3.forEach((p, i) => {
-        podium.innerHTML += `
+        podium.innerHTML += 
           <div class="podium-spot podium-${i + 1}">
             <img src="${p.AvatarURL}" alt="${p.Player}" />
             <div class="podium-rank">${['🥇','🥈','🥉'][i]} ${p.Player}</div>
           </div>
-        `;
+        ;
       });
 
       // Build full leaderboard
       players.forEach((p, i) => {
         const medal = i === 0 ? "bi-award-fill rank-1" : i === 1 ? "bi-award rank-2" : i === 2 ? "bi-award rank-3" : "";
-        tbody.innerHTML += `
+        tbody.innerHTML += 
           <tr>
-            <td>${i + 1} ${medal ? `<i class="bi ${medal} rank-badge"></i>` : ''}</td>
+            <td>${i + 1} ${medal ? <i class="bi ${medal} rank-badge"></i> : ''}</td>
             <td><img class="avatar" src="${p.AvatarURL}" /> <a href="https://www.roblox.com/users/${p.id}/profile" class="text-warning fw-semibold" target="_blank">${p.Player}</a></td>
             <td>${p.GameWins}</td><td>${p.TourneyWins}</td><td>${p.Placements}</td><td>${p.Losses}</td><td>${p.Elo}</td>
-          </tr>`;
+          </tr>;
       });
     }
 
     loadLeaderboard();
-<script>
-  const playersSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT29V1Kb6soefdeczGQLEzJWrJnc9rN6X_pAS3yWHt3AIn3qCXVnIeR043TZczZKdYUkFj4k54vLjyg/pub?gid=0&single=true&output=csv";
-  const gamesSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT29V1Kb6soefdeczGQLEzJWrJnc9rN6X_pAS3yWHt3AIn3qCXVnIeR043TZczZKdYUkFj4k54vLjyg/pub?gid=875424782&single=true&output=csv";
 
-  async function fetchCSV(url) {
-    const response = await fetch(url);
-    const data = await response.text();
-    return data.trim().split('\n').map(row => row.split(','));
-  }
-
-  async function loadBracket() {
-    const [playersData, gamesData] = await Promise.all([
-      fetchCSV(playersSheetURL),
-      fetchCSV(gamesSheetURL)
-    ]);
-
-    const players = {};
-    for (let i = 1; i < playersData.length; i++) {
-      const [id, name, avatar, status] = playersData[i];
-      players[id] = { name, avatar, status };
-    }
-
-    const gamesContainer = document.getElementById("games-container");
-    gamesContainer.innerHTML = "";
-
-    for (let i = 1; i < gamesData.length; i++) {
-      const [gameID, gameName, gameImage, playerIDs, eliminatedIDs] = gamesData[i];
-      const participantIDs = playerIDs.split(',').map(id => id.trim());
-      const eliminatedSet = new Set(eliminatedIDs.split(',').map(id => id.trim()));
-
-      const playersHTML = participantIDs.map(pid => {
-        const player = players[pid];
-        if (!player) return '';
-        const statusClass = eliminatedSet.has(pid) ? 'text-danger' : 'text-success';
-        const statusText = eliminatedSet.has(pid) ? 'Eliminated' : 'Active';
-        return `
-          <div class="d-flex align-items-center mb-2">
-            <img src="${player.avatar}" class="avatar me-2" alt="${player.name}" />
-            <span class="${statusClass}">${player.name} (${statusText})</span>
-          </div>
-        `;
-      }).join('');
-
-      gamesContainer.innerHTML += `
-        <div class="col">
-          <div class="card bg-dark text-white h-100">
-            <img src="${gameImage}" class="card-img-top" alt="${gameName}">
-            <div class="card-body">
-              <h5 class="card-title">${gameName}</h5>
-              <div>${playersHTML}</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  loadBracket();
-</script>
-
-loadBracket();
-</script>
     // Tab switch click sound
     document.querySelectorAll('.nav-link').forEach(btn => {
       btn.addEventListener('click', () => {
