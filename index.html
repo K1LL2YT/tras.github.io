@@ -184,6 +184,18 @@
   <script>
     const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2_wr_BqYz609qT5ajqqg7Dc9GIg0Y1fC9u26LnDWFuZbs_ItQfiRigpXkywopq5K4LuSRR25FaBAw/pub?output=csv";
 
+    // Helper: get numeric userId from Roblox username via API
+    async function getUserId(username) {
+      try {
+        const response = await fetch(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(username)}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data && data.Id ? data.Id : null;
+      } catch {
+        return null;
+      }
+    }
+
     async function loadLeaderboard() {
       try {
         const response = await fetch(sheetURL);
@@ -193,7 +205,7 @@
         const headers = rows[0].split(",");
         const dataRows = rows.slice(1);
 
-        const players = dataRows.map(row => {
+        const playersRaw = dataRows.map(row => {
           const cols = row.split(",");
           return {
             Player: cols[0],
@@ -205,6 +217,26 @@
             Elo: cols[6] ? parseInt(cols[6]) : 0,
           };
         });
+
+        // Cache for username->userId to avoid duplicate API calls
+        const userIdCache = {};
+
+        async function resolveUserId(nameOrId) {
+          if (!nameOrId) return 0;
+          if (!isNaN(Number(nameOrId))) return Number(nameOrId); // Already numeric userId
+          if (userIdCache[nameOrId]) return userIdCache[nameOrId]; // Cached
+          const id = await getUserId(nameOrId);
+          if (id) userIdCache[nameOrId] = id;
+          else userIdCache[nameOrId] = 0; // fallback zero id to avoid retry
+          return userIdCache[nameOrId];
+        }
+
+        // Resolve user IDs for all players
+        const players = [];
+        for (const p of playersRaw) {
+          const numericId = await resolveUserId(p.RobloxUser);
+          players.push({...p, numericUserId: numericId});
+        }
 
         // Calculate Elo if missing
         players.forEach(p => {
@@ -226,9 +258,8 @@
           else if (i === 1) { medal = "bi-award"; rankClass = "rank-2"; }
           else if (i === 2) { medal = "bi-award"; rankClass = "rank-3"; }
 
-          // Use RobloxUser as userId, if username this won't show avatar correctly
-          const avatarURL = `https://www.roblox.com/headshot-thumbnail/image?userId=${p.RobloxUser}&width=48&height=48&format=png`;
-          const profileURL = `https://www.roblox.com/users/${p.RobloxUser}/profile`;
+          const avatarURL = `https://www.roblox.com/headshot-thumbnail/image?userId=${p.numericUserId}&width=48&height=48&format=png`;
+          const profileURL = `https://www.roblox.com/users/${p.numericUserId}/profile`;
 
           const tr = document.createElement("tr");
 
