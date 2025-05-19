@@ -57,62 +57,81 @@
     <tbody>
      <script>
   const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2_wr_BqYz609qT5ajqqg7Dc9GIg0Y1fC9u26LnDWFuZbs_ItQfiRigpXkywopq5K4LuSRR25FaBAw/pub?output=csv";
-
   async function loadLeaderboard() {
-    const response = await fetch(sheetURL);
-    const csvText = await response.text();
-    const rows = csvText.trim().split("\n").slice(1); // skip headers
-    const data = rows.map(r => r.split(","));
+    try {
+      const response = await fetch(sheetURL);
+      const csvText = await response.text();
 
-    // Calculate Elo and add to data
-    const processed = data.map((row) => {
-      const [name, username, gameWins, tourneyWins, placements, losses] = row;
-      const elo =
-        (parseInt(gameWins) * 10) +
-        (parseInt(tourneyWins) * 25) +
-        (parseInt(placements) * 15) -
-        (parseInt(losses) * 5);
-      return {
-        name,
-        username,
-        gameWins,
-        tourneyWins,
-        placements,
-        losses,
-        elo,
-      };
-    });
+      // Parse CSV
+      const rows = csvText.trim().split("\n");
+      const headers = rows[0].split(",");
+      const dataRows = rows.slice(1);
 
-    // Sort by Elo
-    processed.sort((a, b) => b.elo - a.elo);
+      // Convert to array of player objects
+      const players = dataRows.map(row => {
+        const cols = row.split(",");
+        return {
+          Player: cols[0],
+          RobloxUser: cols[1],
+          GameWins: parseInt(cols[2]) || 0,
+          TourneyWins: parseInt(cols[3]) || 0,
+          Placements: parseInt(cols[4]) || 0,
+          Losses: parseInt(cols[5]) || 0,
+          Elo: cols[6] ? parseInt(cols[6]) : 0, // If Elo is calculated in sheet; otherwise 0
+        };
+      });
 
-    // Render leaderboard
-    const tbody = document.querySelector("#leaderboard-table tbody");
-    tbody.innerHTML = "";
+      // If Elo is NOT in sheet, calculate here:
+      players.forEach(p => {
+        if (p.Elo === 0) {
+          p.Elo = (p.GameWins * 10) + (p.TourneyWins * 25) + (p.Placements * 15) - (p.Losses * 5);
+        }
+      });
 
-    processed.forEach((p, index) => {
-      const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
+      // Sort descending by Elo
+      players.sort((a, b) => b.Elo - a.Elo);
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${index + 1} ${medal}</td>
-        <td>
-          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.username}&width=48&height=48&format=png" class="rounded" style="width:32px;height:32px;vertical-align:middle;margin-right:8px;" onerror="this.src='https://tr.rbxcdn.com/default-avatar.png';">
-          <a href="https://www.roblox.com/users/${p.username}/profile" target="_blank">${p.name}</a>
-        </td>
-        <td>${p.gameWins}</td>
-        <td>${p.tourneyWins}</td>
-        <td>${p.placements}</td>
-        <td>${p.losses}</td>
-        <td><strong>${p.elo}</strong></td>
-      `;
-      tbody.appendChild(tr);
-    });
+      // Render leaderboard table body
+      const tbody = document.querySelector("#leaderboard-table tbody");
+      tbody.innerHTML = "";
+
+      players.forEach((p, i) => {
+        // Top 3 medals
+        let medal = "";
+        if (i === 0) medal = "🥇";
+        else if (i === 1) medal = "🥈";
+        else if (i === 2) medal = "🥉";
+
+        // Roblox avatar URL (using UserId)
+        // If RobloxUser is username instead of UserId, this URL won't work correctly.
+        const avatarURL = `https://www.roblox.com/headshot-thumbnail/image?userId=${p.RobloxUser}&width=48&height=48&format=png`;
+
+        // Roblox profile URL
+        const profileURL = `https://www.roblox.com/users/${p.RobloxUser}/profile`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${i + 1} ${medal}</td>
+          <td>
+            <img src="${avatarURL}" alt="avatar" style="width:32px; height:32px; vertical-align:middle; border-radius:50%; margin-right:8px;" 
+              onerror="this.onerror=null;this.src='https://tr.rbxcdn.com/0f20f6c9b35f21575b2e260a16e87ed0';">
+            <a href="${profileURL}" target="_blank" rel="noopener noreferrer">${p.Player}</a>
+          </td>
+          <td>${p.GameWins}</td>
+          <td>${p.TourneyWins}</td>
+          <td>${p.Placements}</td>
+          <td>${p.Losses}</td>
+          <td><strong>${p.Elo}</strong></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error("Error loading leaderboard:", err);
+    }
   }
 
   loadLeaderboard();
 </script>
-
     </tbody>
   </table>
 </div>
