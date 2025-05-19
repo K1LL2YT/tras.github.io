@@ -54,28 +54,57 @@
         <th>Elo</th>
       </tr>
     </thead>
-    <tbody><script>
-  const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2_wr_BqYz609qT5ajqqg7Dc9GIg0Y1fC9u26LnDWFuZbs_ItQfiRigpXkywopq5K4LuSRR25FaBAw/pub?output=csv";
+    <tbody>
+     <script>
+  const sheetURL = "https://docs.google.com/spreadsheets/d/e/YOUR-SHEET-ID/pub?output=csv";
 
   async function loadLeaderboard() {
     const response = await fetch(sheetURL);
     const csvText = await response.text();
-    const rows = csvText.trim().split("\n").slice(1); // Skip header
+    const rows = csvText.trim().split("\n").slice(1); // skip headers
     const data = rows.map(r => r.split(","));
 
-    // Sort by Elo (descending)
-    data.sort((a, b) => parseInt(b[3]) - parseInt(a[3]));
+    // Calculate Elo and add to data
+    const processed = data.map((row) => {
+      const [name, username, gameWins, tourneyWins, placements, losses] = row;
+      const elo =
+        (parseInt(gameWins) * 10) +
+        (parseInt(tourneyWins) * 25) +
+        (parseInt(placements) * 15) -
+        (parseInt(losses) * 5);
+      return {
+        name,
+        username,
+        gameWins,
+        tourneyWins,
+        placements,
+        losses,
+        elo,
+      };
+    });
 
+    // Sort by Elo
+    processed.sort((a, b) => b.elo - a.elo);
+
+    // Render leaderboard
     const tbody = document.querySelector("#leaderboard-table tbody");
     tbody.innerHTML = "";
-    data.forEach((row, i) => {
+
+    processed.forEach((p, index) => {
+      const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
+
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${row[0]}</td>
-        <td>${row[1]}</td>
-        <td>${row[2]}</td>
-        <td>${row[3]}</td>
+        <td>${index + 1} ${medal}</td>
+        <td>
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.username}&width=48&height=48&format=png" class="rounded" style="width:32px;height:32px;vertical-align:middle;margin-right:8px;" onerror="this.src='https://tr.rbxcdn.com/default-avatar.png';">
+          <a href="https://www.roblox.com/users/${p.username}/profile" target="_blank">${p.name}</a>
+        </td>
+        <td>${p.gameWins}</td>
+        <td>${p.tourneyWins}</td>
+        <td>${p.placements}</td>
+        <td>${p.losses}</td>
+        <td><strong>${p.elo}</strong></td>
       `;
       tbody.appendChild(tr);
     });
@@ -83,6 +112,7 @@
 
   loadLeaderboard();
 </script>
+
     </tbody>
   </table>
 </div>
