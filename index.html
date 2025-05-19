@@ -150,9 +150,9 @@
   </ul>
 
   <div class="tab-content mt-4">
-    <div class="tab-pane fade show active" id="bracket">
+<div class="tab-pane fade show active" id="bracket">
   <h3>🏆 Current Bracket</h3>
-  <div id="bracket-container" class="row g-4"></div>
+  <div id="games-container" class="row row-cols-1 row-cols-md-2 g-4"></div>
 </div>
     <div class="tab-pane fade" id="leaderboard">
       <h3>📊 Elo Leaderboard</h3>
@@ -244,60 +244,64 @@
 
     loadLeaderboard();
 <script>
-const bracketSheetURL = "https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_CSV_LINK_HERE/pub?output=csv";
+  const playersSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT29V1Kb6soefdeczGQLEzJWrJnc9rN6X_pAS3yWHt3AIn3qCXVnIeR043TZczZKdYUkFj4k54vLjyg/pub?gid=0&single=true&output=csv";
+  const gamesSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT29V1Kb6soefdeczGQLEzJWrJnc9rN6X_pAS3yWHt3AIn3qCXVnIeR043TZczZKdYUkFj4k54vLjyg/pub?gid=875424782&single=true&output=csv";
 
-async function loadBracket() {
-  const res = await fetch(bracketSheetURL);
-  const csv = await res.text();
-  const rows = csv.trim().split("\n").map(r => r.split(","));
-  
-  // Separate data from both sheets
-  const header = rows[0];
-  const gameRows = rows.filter(r => r[0] === "GAME");
-  const playerRows = rows.filter(r => r[0] === "PLAYER");
+  async function fetchCSV(url) {
+    const response = await fetch(url);
+    const data = await response.text();
+    return data.trim().split('\n').map(row => row.split(','));
+  }
 
-  const players = {};
-  playerRows.forEach(row => {
-    const [_, ref, name, id, avatar] = row;
-    players[ref] = {
-      name,
-      id,
-      avatar: avatar || `https://www.roblox.com/headshot-thumbnail/image?userId=${id}&width=48&height=48&format=png`
-    };
-  });
+  async function loadBracket() {
+    const [playersData, gamesData] = await Promise.all([
+      fetchCSV(playersSheetURL),
+      fetchCSV(gamesSheetURL)
+    ]);
 
-  const container = document.getElementById("bracket-container");
-  container.innerHTML = "";
+    const players = {};
+    for (let i = 1; i < playersData.length; i++) {
+      const [id, name, avatar, status] = playersData[i];
+      players[id] = { name, avatar, status };
+    }
 
-  gameRows.forEach(row => {
-    const [_, gameId, gameName, gameImage, playingRefs, eliminatedRefs] = row;
-    const playing = playingRefs.split(",").map(r => r.trim()).filter(Boolean);
-    const eliminated = eliminatedRefs.split(",").map(r => r.trim());
+    const gamesContainer = document.getElementById("games-container");
+    gamesContainer.innerHTML = "";
 
-    container.innerHTML += `
-      <div class="col-md-6 col-lg-4">
-        <div class="card bg-dark text-light border-warning h-100 shadow">
-          <img src="${gameImage}" class="card-img-top" alt="${gameName}">
-          <div class="card-body">
-            <h5 class="card-title text-warning">${gameName}</h5>
-            <p class="card-text mb-2">Game ID: ${gameId}</p>
-            <strong>Players:</strong>
-            <ul class="list-group list-group-flush bg-dark">
-              ${playing.map(ref => {
-                const p = players[ref];
-                const isElim = eliminated.includes(ref);
-                return `<li class="list-group-item bg-dark text-${isElim ? 'danger' : 'light'}">
-                  <img src="${p?.avatar}" class="avatar me-2" />
-                  <a href="https://www.roblox.com/users/${p?.id}/profile" target="_blank" class="text-${isElim ? 'danger' : 'warning'}">${p?.name}</a>
-                  ${isElim ? '<span class="badge bg-danger ms-2">Eliminated</span>' : ''}
-                </li>`;
-              }).join("")}
-            </ul>
+    for (let i = 1; i < gamesData.length; i++) {
+      const [gameID, gameName, gameImage, playerIDs, eliminatedIDs] = gamesData[i];
+      const participantIDs = playerIDs.split(',').map(id => id.trim());
+      const eliminatedSet = new Set(eliminatedIDs.split(',').map(id => id.trim()));
+
+      const playersHTML = participantIDs.map(pid => {
+        const player = players[pid];
+        if (!player) return '';
+        const statusClass = eliminatedSet.has(pid) ? 'text-danger' : 'text-success';
+        const statusText = eliminatedSet.has(pid) ? 'Eliminated' : 'Active';
+        return `
+          <div class="d-flex align-items-center mb-2">
+            <img src="${player.avatar}" class="avatar me-2" alt="${player.name}" />
+            <span class="${statusClass}">${player.name} (${statusText})</span>
+          </div>
+        `;
+      }).join('');
+
+      gamesContainer.innerHTML += `
+        <div class="col">
+          <div class="card bg-dark text-white h-100">
+            <img src="${gameImage}" class="card-img-top" alt="${gameName}">
+            <div class="card-body">
+              <h5 class="card-title">${gameName}</h5>
+              <div>${playersHTML}</div>
+            </div>
           </div>
         </div>
-      </div>`;
-  });
-}
+      `;
+    }
+  }
+
+  loadBracket();
+</script>
 
 loadBracket();
 </script>
