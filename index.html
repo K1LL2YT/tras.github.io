@@ -398,30 +398,31 @@ async function renderPlayerList() {
       });
     }
 
-    // Render podium top 3
-    function renderPodium() {
-      const podium = document.getElementById("podium");
-      podium.innerHTML = "";
+// Render top 3 podium
+function renderPodium() {
+  const podium = document.getElementById("podium");
+  podium.innerHTML = "";
 
-      const top3 = leaderboardData.slice(0, 3);
+  const top3 = leaderboardData
+    .sort((a, b) => b.Elo - a.Elo)
+    .slice(0, 3);
 
-      top3.forEach((p, i) => {
-        let avatarSrc = p.Avatar;
-        if (!avatarSrc || avatarSrc.trim() === "") {
-          avatarSrc = getRobloxAvatar(p.PlayerName);
-        }
+  const podiumOrder = [1, 2, 3];
 
-        const classes = ["podium-2", "podium-1", "podium-3"]; // order: 2nd, 1st, 3rd
-        podium.innerHTML += `
-          <div class="podium-spot ${classes[i]}">
-            <img src="${avatarSrc}" alt="${p.PlayerName} avatar" />
-            <div class="podium-rank">${i === 1 ? "🥇 1st" : (i === 0 ? "🥈 2nd" : "🥉 3rd")}</div>
-            <strong>${p.PlayerName}</strong><br/>
-            Elo: ${p.Elo}
-          </div>
-        `;
-      });
-    }
+  podiumOrder.forEach(rank => {
+    const player = top3.find((_, i) => i === rank - 1);
+    if (!player) return;
+
+    const spot = document.createElement("div");
+    spot.className = `podium-spot podium-${rank}`;
+    spot.innerHTML = `
+      <img src="${player.Avatar || getRobloxAvatar(player.PlayerName)}" alt="${player.PlayerName} avatar" />
+      <div class="podium-rank"><strong>#${rank}</strong><br/>${player.PlayerName}</div>
+    `;
+    podium.appendChild(spot);
+  });
+}
+
 
     // Render tag filters
     function renderFilters() {
