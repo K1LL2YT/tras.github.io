@@ -256,6 +256,28 @@
       });
     }
 
+async function getRobloxUserId(username) {
+  const res = await fetch(`https://users.roblox.com/v1/usernames/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ usernames: [username] })
+  });
+
+  const data = await res.json();
+  if (data && data.data && data.data.length > 0) {
+    return data.data[0].id;
+  }
+  return null;
+}
+
+async function getRobloxAvatarUrl(username) {
+  const userId = await getRobloxUserId(username);
+  if (!userId) return null;
+  return `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=48x48&format=Png&isCircular=false`;
+}
+
     // Merge player data with leaderboard by PlayerRefNumber
     function mergeData() {
       // Create map for playerData for quick lookup
@@ -296,26 +318,13 @@
     }
 
     // Utility: Get Roblox avatar URL from player name
-   async function getRobloxUserId(username) {
-  const res = await fetch(`https://users.roblox.com/v1/usernames/users`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ usernames: [username] })
-  });
-  const data = await res.json();
-  if (data && data.data && data.data.length > 0) {
-    return data.data[0].id;
-  }
-  return null;
-}
+    function getRobloxAvatar(name) {
+const avatarImg = document.createElement("img");
+avatarImg.className = "avatar";
 
-async function getRobloxAvatarUrl(username) {
-  const userId = await getRobloxUserId(username);
-  if (!userId) return null;
-  return `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=48x48&format=Png&isCircular=false`;
-}
+getRobloxAvatarUrl(player.PlayerName).then(url => {
+  avatarImg.src = url || 'default-avatar.png'; // fallback if null
+});
 
 
     // Render player list (in bracket tab)
