@@ -1,6 +1,3 @@
-well i just need all of the stuff from the spreadsheet into the leaderboard
-
-Heres the code
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -153,10 +150,10 @@ Heres the code
   </ul>
 
   <div class="tab-content mt-4">
-<div class="tab-pane fade show active" id="bracket">
-  <h3>🏆 Current Bracket</h3>
-  <div class="row row-cols-1 row-cols-md-2 g-4 mt-4" id="player-list"></div>
-</div>
+    <div class="tab-pane fade show active" id="bracket">
+      <h3>🏆 Current Bracket</h3>
+      <div class="row row-cols-1 row-cols-md-2 g-4 mt-4" id="player-list"></div>
+    </div>
     <div class="tab-pane fade" id="leaderboard">
       <h3>📊 Elo Leaderboard</h3>
       <div id="filter-container" style="margin-bottom: 1rem;"></div>
@@ -185,166 +182,260 @@ Heres the code
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-// Tags and their display colors
-const TAG_COLORS = {
-  "Top Seed": "#FFD700",
-  "Active Player": "#32CD32",
-  "Newcomer": "#1E90FF",
-  "Eliminated": "#FF4C4C"
-};
-
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2_wr_BqYz609qT5ajqqg7Dc9GIg0Y1fC9u26LnDWFuZbs_ItQfiRigpXkywopq5K4LuSRR25FaBAw/pub?output=csv";
-
-let allPlayers = [];
-
-async function loadLeaderboard() {
-  const res = await fetch(sheetURL);
-  const csv = await res.text();
-  const rows = csv.trim().split("\n").slice(1);
-
-  allPlayers = rows.map(row => {
-    const [Player, RobloxUser, GameWins, TourneyWins, Placements, Losses, Elo, AvatarURL, Tags] = row.split(",");
-    const tagList = Tags ? Tags.split(";").map(t => t.trim()) : [];
-    return {
-      Player,
-      RobloxUser,
-      GameWins: +GameWins,
-      TourneyWins: +TourneyWins,
-      Placements: +Placements,
-      Losses: +Losses,
-      Elo: +Elo || (+GameWins * 10 + +TourneyWins * 25 + +Placements * 15 - +Losses * 5),
-      AvatarURL: AvatarURL || `https://www.roblox.com/headshot-thumbnail/image?userId=${RobloxUser}&width=48&height=48&format=png`,
-      id: RobloxUser,
-      Tags: tagList
+    // Tags and their display colors
+    const TAG_COLORS = {
+      "Top Seed": "#FFD700",
+      "Active Player": "#32CD32",
+      "Newcomer": "#1E90FF",
+      "Eliminated": "#FF4C4C"
     };
-  });
 
-  createFilterCheckboxes();
-  renderLeaderboard(allPlayers);
-}
+    // Replace these URLs with your actual published CSVs from Google Sheets:
+    const leaderboardSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT2_wr_BqYz609qT5ajqqg7Dc9GIg0Y1fC9u26LnDWFuZbs_ItQfiRigpXkywopq5K4LuSRR25FaBAw/pub?output=csv";
+    const playersSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT29V1Kb6soefdeczGQLEzJWrJnc9rN6X_pAS3yWHt3AIn3qCXVnIeR043TZczZKdYUkFj4k54vLjyg/pub?output=csv";
 
-// Create filter checkboxes dynamically
-function createFilterCheckboxes() {
-  const container = document.getElementById("filter-container");
-  container.innerHTML = ""; // Clear old filters
+    let allPlayers = [];
 
-  Object.entries(TAG_COLORS).forEach(([tag, color]) => {
-    const id = `filter-${tag.toLowerCase().replace(/\s/g, "-")}`;
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.id = id;
-    checkbox.value = tag;
-    checkbox.checked = true;
-    checkbox.addEventListener("change", applyFilters);
+    async function loadLeaderboard() {
+      const res = await fetch(leaderboardSheetURL);
+      const csv = await res.text();
+      const rows = csv.trim().split("\n").slice(1); // skip header
 
-    const label = document.createElement("label");
-    label.htmlFor = id;
-    label.style.color = color;
-    label.style.marginRight = "15px";
-    label.textContent = tag;
+      allPlayers = rows.map(row => {
+        // Use CSV parsing that handles commas inside quoted fields if needed
+        // Here we keep simple split for demo, you can upgrade to a CSV parser if needed
+        const columns = row.split(",");
+        // Expected order:
+        // Player, RobloxUser, GameWins, TourneyWins, Placements, Losses, Elo, AvatarURL, Tags
+        const Player = columns[0]?.trim() || "";
+        const RobloxUser = columns[1]?.trim() || "";
+        const GameWins = Number(columns[2]) || 0;
+        const TourneyWins = Number(columns[3]) || 0;
+        const Placements = Number(columns[4]) || 0;
+        const Losses = Number(columns[5]) || 0;
+        let Elo = Number(columns[6]) || 0;
+        const AvatarURL = columns[7]?.trim() || "";
+        const TagsRaw = columns[8]?.trim() || "";
 
-    container.appendChild(checkbox);
-    container.appendChild(label);
-  });
-}
+        // Calculate Elo if zero or missing
+        if (!Elo) {
+          Elo = (GameWins * 10) + (TourneyWins * 25) + (Placements * 15) - (Losses * 5);
+          if (Elo < 0) Elo = 0;
+        }
 
-// Apply filtering based on checked tags
-function applyFilters() {
-  const checkedTags = Array.from(document.querySelectorAll("#filter-container input[type=checkbox]:checked"))
-    .map(cb => cb.value);
+        // Tags are pipe-separated or comma separated? Let's handle both just in case
+        let Tags = [];
+        if (TagsRaw.includes("|")) {
+          Tags = TagsRaw.split("|").map(t => t.trim());
+        } else if (TagsRaw.includes(",")) {
+          Tags = TagsRaw.split(",").map(t => t.trim());
+        } else if (TagsRaw.length > 0) {
+          Tags = [TagsRaw];
+        }
 
-  const filtered = allPlayers.filter(p => 
-    p.Tags.some(tag => checkedTags.includes(tag)) || p.Tags.length === 0
-  );
+        return { Player, RobloxUser, GameWins, TourneyWins, Placements, Losses, Elo, AvatarURL, Tags };
+      });
 
-  renderLeaderboard(filtered);
-}
+      allPlayers.sort((a, b) => b.Elo - a.Elo); // Sort descending Elo
 
-// Render leaderboard table with highlights
-function renderLeaderboard(players) {
-  players.sort((a,b) => b.Elo - a.Elo);
+      renderLeaderboard(allPlayers);
+      renderPodium(allPlayers);
+      renderFilters(allPlayers);
+    }
 
-  const tbody = document.querySelector("#leaderboard-table tbody");
-  const podium = document.getElementById("podium");
-  tbody.innerHTML = "";
-  podium.innerHTML = "";
+    function renderLeaderboard(players) {
+      const tbody = document.querySelector("#leaderboard-table tbody");
+      tbody.innerHTML = "";
 
-  // Podium top 3
-  const top3 = players.slice(0,3);
-  top3.forEach((p,i) => {
-    podium.innerHTML += `
-      <div class="podium-spot podium-${i+1}">
-        <img src="${p.AvatarURL}" alt="${p.Player}" />
-        <div class="podium-rank">${['🥇','🥈','🥉'][i]} ${p.Player}</div>
-      </div>`;
-  });
+      players.forEach((p, idx) => {
+        const isEliminated = p.Tags.includes("Eliminated");
 
-  // Table rows
-  players.forEach((p,i) => {
-    // Compose tag badges
-    const tagBadges = p.Tags.map(tag => `<span style="background-color:${TAG_COLORS[tag]};color:#000;padding:2px 6px;margin-left:5px;border-radius:6px;font-size:0.75rem;">${tag}</span>`).join("");
+        const tr = document.createElement("tr");
+        if (isEliminated) {
+          tr.style.color = TAG_COLORS["Eliminated"];
+          tr.style.fontWeight = "600";
+        }
 
-    const medalIcon = i === 0 ? "bi-award-fill rank-1" : i === 1 ? "bi-award rank-2" : i === 2 ? "bi-award rank-3" : "";
+        tr.innerHTML = `
+          <td>${idx + 1}${renderRankBadge(idx + 1)}</td>
+          <td>
+            <img src="${p.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png'}" class="avatar" alt="Avatar"/>
+            <a href="https://www.roblox.com/users/${p.RobloxUser}/profile" target="_blank" style="color:inherit; text-decoration:none;">${p.Player}</a>
+            ${renderTags(p.Tags)}
+          </td>
+          <td>${p.GameWins}</td>
+          <td>${p.TourneyWins}</td>
+          <td>${p.Placements}</td>
+          <td>${p.Losses}</td>
+          <td>${p.Elo}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-    tbody.innerHTML += `
-      <tr>
-        <td>${i+1} ${medalIcon ? `<i class="bi ${medalIcon} rank-badge"></i>` : ""}</td>
-        <td>
-          <img class="avatar" src="${p.AvatarURL}" />
-          <a href="https://www.roblox.com/users/${p.id}/profile" class="text-warning fw-semibold" target="_blank">${p.Player}</a>
-          ${tagBadges}
-        </td>
-        <td>${p.GameWins}</td>
-        <td>${p.TourneyWins}</td>
-        <td>${p.Placements}</td>
-        <td>${p.Losses}</td>
-        <td>${p.Elo}</td>
-      </tr>`;
-  });
-}
+    // Podium with top 3
+    function renderPodium(players) {
+      const podium = document.getElementById("podium");
+      podium.innerHTML = "";
+      const top3 = players.slice(0, 3);
 
-loadLeaderboard();
+      const medals = [
+        { rank: 1, name: "🥇", className: "podium-1" },
+        { rank: 2, name: "🥈", className: "podium-2" },
+        { rank: 3, name: "🥉", className: "podium-3" }
+      ];
 
-const playersSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT29V1Kb6soefdeczGQLEzJWrJnc9rN6X_pAS3yWHt3AIn3qCXVnIeR043TZczZKdYUkFj4k54vLjyg/pub?output=csv"; // Replace this with your actual Players tab CSV URL
+      medals.forEach(({ rank, name, className }) => {
+        const p = top3[rank - 1];
+        if (!p) return;
+        const spot = document.createElement("div");
+        spot.classList.add("podium-spot", className);
 
-async function loadPlayerList() {
-  const res = await fetch(playersSheetURL);
-  const csv = await res.text();
-  const rows = csv.trim().split("\n").slice(1); // skip headers
+        spot.innerHTML = `
+          <img src="${p.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png'}" alt="Avatar" />
+          <div class="podium-rank">${name} ${p.Player}</div>
+          <div>Elo: ${p.Elo}</div>
+        `;
+        podium.appendChild(spot);
+      });
+    }
 
-  const container = document.getElementById("player-list");
-  container.innerHTML = "";
+    // Rank badges for top 3
+    function renderRankBadge(rank) {
+      if (rank === 1) return `<span class="rank-badge rank-1"><i class="bi bi-award-fill"></i></span>`;
+      if (rank === 2) return `<span class="rank-badge rank-2"><i class="bi bi-award"></i></span>`;
+      if (rank === 3) return `<span class="rank-badge rank-3"><i class="bi bi-trophy-fill"></i></span>`;
+      return "";
+    }
 
-  rows.forEach(row => {
-    const [id, name, avatarURL, ref, status] = row.split(",");
-    const statusTrimmed = status?.trim().toLowerCase();
-    const statusClass = statusTrimmed === "eliminated" ? "text-danger" : "text-success";
-    const finalAvatar = avatarURL?.trim() || `https://www.roblox.com/headshot-thumbnail/image?userId=${id}&width=100&height=100&format=png`;
+    // Render tags with colors
+    function renderTags(tags) {
+      if (!tags.length) return "";
+      return tags.map(tag => {
+        const color = TAG_COLORS[tag] || "#ccc";
+        return `<span style="background:${color}; color:#000; padding:2px 6px; margin-left:4px; border-radius:4px; font-size:0.75rem; font-weight:600;">${tag}</span>`;
+      }).join("");
+    }
 
-    container.innerHTML += `
-      <div class="col">
-        <div class="card bg-dark text-white h-100">
-          <div class="card-body d-flex align-items-center">
-            <img src="${finalAvatar}" class="rounded-circle me-3" width="60" height="60" alt="${name}">
-            <div>
-              <h5 class="card-title mb-0">${name}</h5>
-              <p class="${statusClass} mb-0">${status}</p>
-              <a href="https://www.roblox.com/users/${id}/profile" class="text-info" target="_blank">View Profile</a>
+    // Filter UI for tags
+    function renderFilters(players) {
+      const container = document.getElementById("filter-container");
+      container.innerHTML = "";
+
+      const uniqueTags = new Set();
+      players.forEach(p => p.Tags.forEach(t => uniqueTags.add(t)));
+      const tagsArray = Array.from(uniqueTags).filter(t => t !== "");
+
+      if (!tagsArray.length) return;
+
+      const label = document.createElement("label");
+      label.textContent = "Filter by tags: ";
+      label.style.fontWeight = "600";
+      container.appendChild(label);
+
+      tagsArray.forEach(tag => {
+        const color = TAG_COLORS[tag] || "#ccc";
+        const id = `filter-tag-${tag.replace(/\s/g, "")}`;
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = id;
+        checkbox.value = tag;
+        checkbox.checked = true;
+        checkbox.style.marginLeft = "1rem";
+        checkbox.addEventListener("change", () => {
+          filterPlayersByTags();
+        });
+
+        const checkboxLabel = document.createElement("label");
+        checkboxLabel.htmlFor = id;
+        checkboxLabel.textContent = tag;
+        checkboxLabel.style.color = color;
+        checkboxLabel.style.fontWeight = "600";
+        checkboxLabel.style.marginLeft = "0.25rem";
+        checkboxLabel.style.cursor = "pointer";
+
+        container.appendChild(checkbox);
+        container.appendChild(checkboxLabel);
+      });
+    }
+
+    function filterPlayersByTags() {
+      const checkboxes = document.querySelectorAll("#filter-container input[type=checkbox]");
+      const activeTags = [];
+      checkboxes.forEach(cb => {
+        if (cb.checked) activeTags.push(cb.value);
+      });
+
+      let filteredPlayers;
+      if (activeTags.length === 0) {
+        filteredPlayers = allPlayers; // show all if none selected
+      } else {
+        filteredPlayers = allPlayers.filter(p => {
+          // Show player if they have at least one active tag
+          return p.Tags.some(t => activeTags.includes(t));
+        });
+      }
+
+      renderLeaderboard(filteredPlayers);
+    }
+
+    // Player List for Bracket tab
+    async function loadPlayersList() {
+      const res = await fetch(playersSheetURL);
+      const csv = await res.text();
+      const rows = csv.trim().split("\n").slice(1);
+
+      const container = document.getElementById("player-list");
+      container.innerHTML = "";
+
+      rows.forEach(row => {
+        const cols = row.split(",");
+        // Columns: PlayerID, Name, Avatar, Status, etc.
+        const PlayerID = cols[0]?.trim() || "";
+        const Name = cols[1]?.trim() || "";
+        const Avatar = cols[2]?.trim() || "";
+        const Status = cols[3]?.trim() || "";
+
+        const isEliminated = Status.toLowerCase() === "eliminated";
+
+        const card = document.createElement("div");
+        card.className = "col";
+
+        card.innerHTML = `
+          <div class="card text-dark bg-light h-100" style="opacity: ${isEliminated ? 0.5 : 1}; border: ${isEliminated ? '2px solid #ff4c4c' : 'none'};">
+            <img src="${Avatar || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=150&height=150&format=png'}" class="card-img-top" alt="Avatar">
+            <div class="card-body">
+              <h5 class="card-title">${Name}</h5>
+              ${isEliminated ? '<span class="badge bg-danger">Eliminated</span>' : '<span class="badge bg-success">Active</span>'}
             </div>
           </div>
-        </div>
-      </div>
-    `;
-  });
-}
+        `;
 
-loadPlayerList();
+        container.appendChild(card);
+      });
+    }
 
-    // Tab switch click sound
-    document.querySelectorAll('.nav-link').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const sfx = document.getElementById("sfx-click");
-        sfx?.play();
+    // Play click sound effect
+    function playClickSfx() {
+      const sfx = document.getElementById("sfx-click");
+      if (sfx) {
+        sfx.currentTime = 0;
+        sfx.play();
+      }
+    }
+
+    // Initialize
+    document.addEventListener("DOMContentLoaded", async () => {
+      await loadLeaderboard();
+      await loadPlayersList();
+
+      // Bootstrap tab click sound effect
+      const tabs = document.querySelectorAll("#tabs button[data-bs-toggle='tab']");
+      tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          playClickSfx();
+        });
       });
     });
   </script>
