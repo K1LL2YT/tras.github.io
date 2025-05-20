@@ -342,13 +342,12 @@
 
         const podiumSpot = document.createElement('div');
         podiumSpot.classList.add('podium-spot', `podium-${i + 1}`);
-podiumSpot.innerHTML = `
-  <img src="${player.AvatarURL}" alt="${player.Name} Avatar" title="${player.Name}" />
-  <div class="podium-rank">${i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : '🥉 3rd'}</div>
-  <div>${player.Name}</div>
-  <div>Elo: ${player.Elo}</div>
-  <div>${getStatusBadge(player.Status)}</div>
-`;
+        podiumSpot.innerHTML = `
+          <img src="${player.AvatarURL}" alt="${player.Name} Avatar" title="${player.Name}" />
+          <div class="podium-rank">${i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : '🥉 3rd'}</div>
+          <div>${player.Name}</div>
+          <div>Elo: ${player.Elo}</div>
+        `;
 
         podiumContainer.appendChild(podiumSpot);
       }
