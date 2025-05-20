@@ -261,69 +261,67 @@
 
     // Merge player info by PlayerID/PlayerRefNumber
     function mergePlayerData(leaderboard, players) {
-      // Create map of players by PlayerRefNumber (which should be unique)
-      const playerMap = new Map(players.map(p => [p['PlayerRefNumber'], p]));
-      // Enhance leaderboard entries with player data (name, avatar)
-      return leaderboard.map(entry => {
-        const playerInfo = playerMap.get(entry.PlayerRefNumber) || null;
-        return {...entry, ...playerInfo};
-      });
-    }
+  const playerMap = new Map(players.map(p => [p['PlayerRefNumber'], p]));
+  return leaderboard.map(entry => {
+    const playerInfo = playerMap.get(entry.PlayerRefNumber) || {};
+    return {
+      ...entry,
+      PlayerName: playerInfo.PlayerName || 'Unknown',
+      PlayerID: playerInfo.PlayerID || 'N/A',
+      AvatarURL: playerInfo.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png',
+      Status: playerInfo.Status || 'Unknown',
+      Tags: entry.Tags || ''
+    };
+  });
+}
+
 
     // Create player card for bracket tab
-    function createPlayerCard(player) {
-      const avatarUrl = player.Avatar || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png';
-      const status = player.Status || 'Unknown';
+   function createPlayerCard(player) {
+  const avatarUrl = player.AvatarURL;
+  const status = player.Status || 'Unknown';
 
-      const card = el('div', {class: 'player-card'});
-      const avatar = el('img', {src: avatarUrl, alt: player.Name || 'Player', class: 'avatar'});
-      const name = el('span', {}, player.Name || 'Unknown Player');
+  const card = el('div', {class: 'player-card'});
+  const avatar = el('img', {src: avatarUrl, alt: player.PlayerName, class: 'avatar'});
+  const name = el('span', {}, player.PlayerName || 'Unknown Player');
 
-      const statusLabel = el('span', {class: `player-status status-${status}`}, status);
+  const statusLabel = el('span', {class: `player-status status-${status}`}, status);
 
-      card.appendChild(avatar);
-      card.appendChild(name);
-      card.appendChild(statusLabel);
+  card.appendChild(avatar);
+  card.appendChild(name);
+  card.appendChild(statusLabel);
 
-      return card;
-    }
+  return card;
+}
 
     // Create leaderboard table rows
-    function createLeaderboardRow(player, rank) {
-      // Defensive numeric parsing
-      const gameWins = parseInt(player['Game Wins']) || 0;
-      const tourneyWins = parseInt(player['Tournament Wins']) || 0;
-      const topFinishes = parseInt(player['Top Finishes']) || 0;
-      const losses = parseInt(player['Losses']) || 0;
-      const gamesPlayed = parseInt(player['Games Played']) || 0;
-      const elo = parseInt(player.Elo) || 0;
+function createLeaderboardRow(player, rank) {
+  const avatarUrl = player.AvatarURL;
+  const tr = el('tr');
 
-      const avatarUrl = player.Avatar || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png';
+  const rankTd = el('td', {}, rank);
+  const playerTd = el('td', {style: 'white-space: nowrap; display:flex; align-items:center; gap: 0.5rem;'});
+  const avatarImg = el('img', {src: avatarUrl, alt: player.PlayerName, class: 'avatar'});
+  const nameBlock = el('div', {});
+  nameBlock.appendChild(el('div', {}, player.PlayerName));
+  nameBlock.appendChild(el('small', {style: 'color: #ccc;'}, `@${player.PlayerID}`));
+  if (player.Tags) nameBlock.appendChild(el('div', {style: 'font-size: 0.75rem; color: #ffb400;'}, player.Tags));
 
-      const tr = el('tr');
+  playerTd.appendChild(avatarImg);
+  playerTd.appendChild(nameBlock);
 
-      // Rank
-      const rankTd = el('td', {}, rank);
+  tr.appendChild(rankTd);
+  tr.appendChild(playerTd);
+  tr.appendChild(el('td', {}, player.GameWins || '0'));
+  tr.appendChild(el('td', {}, player.TourneyWins || '0'));
+  tr.appendChild(el('td', {}, player.TopFinishes || '0'));
+  tr.appendChild(el('td', {}, player.Losses || '0'));
+  tr.appendChild(el('td', {}, player.GamesPlayed || '0'));
+  tr.appendChild(el('td', {}, player.Elo || '0'));
 
-      // Player cell with avatar and name
-      const playerTd = el('td', {style: 'white-space: nowrap; display:flex; align-items:center; gap: 0.5rem;'});
-      const avatarImg = el('img', {src: avatarUrl, alt: player.Name || 'Player', class: 'avatar'});
-      const nameSpan = el('span', {}, player.Name || 'Unknown');
+  return tr;
+}
 
-      playerTd.appendChild(avatarImg);
-      playerTd.appendChild(nameSpan);
-
-      tr.appendChild(rankTd);
-      tr.appendChild(playerTd);
-      tr.appendChild(el('td', {}, gameWins));
-      tr.appendChild(el('td', {}, tourneyWins));
-      tr.appendChild(el('td', {}, topFinishes));
-      tr.appendChild(el('td', {}, losses));
-      tr.appendChild(el('td', {}, gamesPlayed));
-      tr.appendChild(el('td', {}, elo));
-
-      return tr;
-    }
 
     // Render podium top 3 players
     function renderPodium(players) {
