@@ -169,6 +169,32 @@
       border-radius: 5px;
       font-weight: 600;
     }
+    .status-badge {
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.2em 0.6em;
+  border-radius: 12px;
+  display: inline-block;
+  color: #fff;
+}
+
+.status-active {
+  background-color: #28a745; /* green */
+}
+
+.status-less-active {
+  background-color: #ffc107; /* yellow */
+  color: #000;
+}
+
+.status-banned {
+  background-color: #dc3545; /* red */
+}
+
+.status-not-in-tournament {
+  background-color: #6c757d; /* gray */
+}
+
   </style>
 </head>
 <body class="container py-4">
@@ -316,12 +342,14 @@
 
         const podiumSpot = document.createElement('div');
         podiumSpot.classList.add('podium-spot', `podium-${i + 1}`);
-        podiumSpot.innerHTML = `
-          <img src="${player.AvatarURL}" alt="${player.Name} Avatar" title="${player.Name}" />
-          <div class="podium-rank">${i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : '🥉 3rd'}</div>
-          <div>${player.Name}</div>
-          <div>Elo: ${player.Elo}</div>
-        `;
+podiumSpot.innerHTML = `
+  <img src="${player.AvatarURL}" alt="${player.Name} Avatar" title="${player.Name}" />
+  <div class="podium-rank">${i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : '🥉 3rd'}</div>
+  <div>${player.Name}</div>
+  <div>Elo: ${player.Elo}</div>
+  <div>${getStatusBadge(player.Status)}</div>
+`;
+
         podiumContainer.appendChild(podiumSpot);
       }
 
@@ -331,7 +359,23 @@
 
       sortedPlayers.forEach((p, idx) => {
         // Status badge
-        const statusColor = p.Status.toLowerCase() === 'eliminated' ? 'danger' : 'success';
+function getStatusBadge(status) {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return `<span class="status-badge status-active">Active</span>`;
+    case 'less active':
+      return `<span class="status-badge status-less-active">Less Active</span>`;
+    case 'banned':
+      return `<span class="status-badge status-banned">Banned</span>`;
+    case 'not in current tournament':
+      return `<span class="status-badge status-not-in-tournament">Not in Tournament</span>`;
+    case 'eliminated':
+      return `<span class="status-badge status-banned">Eliminated</span>`;
+    default:
+      return `<span class="status-badge status-active">${status}</span>`;
+  }
+}
+
         const tagSpans = p.Tags.map(tag => `<span class="tag-badge">${tag}</span>`).join(' ');
 
         const tr = document.createElement('tr');
@@ -350,7 +394,7 @@
           <td>${p['Losses']}</td>
           <td>${p['Games Played']}</td>
           <td>${p.Elo}</td>
-          <td><span class="badge bg-${statusColor}">${p.Status}</span></td>
+          <td>${getStatusBadge(p.Status)}</td>
         `;
         tbody.appendChild(tr);
       });
