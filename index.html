@@ -256,66 +256,69 @@
           tr.style.fontWeight = "600";
         }
 
-        tr.innerHTML = 
-          <td>${idx + 1}${renderRankBadge(idx + 1)}</td>
-          <td>
-            <img src="${p.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png'}" class="avatar" alt="Avatar"/>
-            <a href="https://www.roblox.com/users/${p.RobloxUser}/profile" target="_blank" style="color:inherit; text-decoration:none;">${p.Player}</a>
-            ${renderTags(p.Tags)}
-          </td>
-          <td>${p.GameWins}</td>
-          <td>${p.TourneyWins}</td>
-          <td>${p.Placements}</td>
-          <td>${p.Losses}</td>
-          <td>${p.Elo}</td>
-        ;
+tr.innerHTML = `
+  <td>${idx + 1}${renderRankBadge(idx + 1)}</td>
+  <td>
+    <img src="${p.AvatarURL || 'fallback_url'}" class="avatar" alt="Avatar" />
+    <a href="https://www.roblox.com/users/${p.RobloxUser}/profile" target="_blank" style="color:inherit; text-decoration:none;">${p.Player}</a>
+    ${renderTags(p.Tags)}
+  </td>
+  <td>${p.GameWins}</td>
+  <td>${p.TourneyWins}</td>
+  <td>${p.Placements}</td>
+  <td>${p.Losses}</td>
+  <td>${p.Elo}</td>
+`;
         tbody.appendChild(tr);
       });
     }
 
     // Podium with top 3
-    function renderPodium(players) {
-      const podium = document.getElementById("podium");
-      podium.innerHTML = "";
-      const top3 = players.slice(0, 3);
+function renderPodium(players) {
+  const podium = document.getElementById("podium");
+  podium.innerHTML = "";
+  const top3 = players.slice(0, 3);
 
-      const medals = [
-        { rank: 1, name: "🥇", className: "podium-1" },
-        { rank: 2, name: "🥈", className: "podium-2" },
-        { rank: 3, name: "🥉", className: "podium-3" }
-      ];
+  const medals = [
+    { rank: 1, name: "🥇", className: "podium-1" },
+    { rank: 2, name: "🥈", className: "podium-2" },
+    { rank: 3, name: "🥉", className: "podium-3" }
+  ];
 
-      medals.forEach(({ rank, name, className }) => {
-        const p = top3[rank - 1];
-        if (!p) return;
-        const spot = document.createElement("div");
-        spot.classList.add("podium-spot", className);
+  medals.forEach(({ rank, name, className }) => {
+    const p = top3[rank - 1];
+    if (!p) return;
+    const spot = document.createElement("div");
+    spot.classList.add("podium-spot", className);
 
-        spot.innerHTML = 
-          <img src="${p.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png'}" alt="Avatar" />
-          <div class="podium-rank">${name} ${p.Player}</div>
-          <div>Elo: ${p.Elo}</div>
-        ;
-        podium.appendChild(spot);
-      });
-    }
+    spot.innerHTML = `
+      <img src="${p.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png'}" alt="Avatar" />
+      <div class="podium-rank">${name} ${p.Player}</div>
+      <div>Elo: ${p.Elo}</div>
+    `;
+    podium.appendChild(spot);
+  });
+}
+
 
     // Rank badges for top 3
-    function renderRankBadge(rank) {
-      if (rank === 1) return <span class="rank-badge rank-1"><i class="bi bi-award-fill"></i></span>;
-      if (rank === 2) return <span class="rank-badge rank-2"><i class="bi bi-award"></i></span>;
-      if (rank === 3) return <span class="rank-badge rank-3"><i class="bi bi-trophy-fill"></i></span>;
-      return "";
-    }
+function renderRankBadge(rank) {
+  if (rank === 1) return `<span class="rank-badge rank-1"><i class="bi bi-award-fill"></i></span>`;
+  if (rank === 2) return `<span class="rank-badge rank-2"><i class="bi bi-award"></i></span>`;
+  if (rank === 3) return `<span class="rank-badge rank-3"><i class="bi bi-trophy-fill"></i></span>`;
+  return "";
+}
+
 
     // Render tags with colors
-    function renderTags(tags) {
-      if (!tags.length) return "";
-      return tags.map(tag => {
-        const color = TAG_COLORS[tag] || "#ccc";
-        return <span style="background:${color}; color:#000; padding:2px 6px; margin-left:4px; border-radius:4px; font-size:0.75rem; font-weight:600;">${tag}</span>;
-      }).join("");
-    }
+function renderTags(tags) {
+  if (!tags.length) return "";
+  return tags.map(tag => {
+    const color = TAG_COLORS[tag] || "#ccc";
+    return `<span style="background:${color}; color:#000; padding:2px 6px; margin-left:4px; border-radius:4px; font-size:0.75rem; font-weight:600;">${tag}</span>`;
+  }).join("");
+}
+
 
     // Filter UI for tags
     function renderFilters(players) {
