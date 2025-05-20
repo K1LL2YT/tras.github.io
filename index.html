@@ -296,10 +296,27 @@
     }
 
     // Utility: Get Roblox avatar URL from player name
-    function getRobloxAvatar(name) {
-      // Roblox API for headshot (standard 48x48)
-      return `https://www.roblox.com/headshot-thumbnail/image?userName=${encodeURIComponent(name)}&width=48&height=48&format=png`;
-    }
+   async function getRobloxUserId(username) {
+  const res = await fetch(`https://users.roblox.com/v1/usernames/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ usernames: [username] })
+  });
+  const data = await res.json();
+  if (data && data.data && data.data.length > 0) {
+    return data.data[0].id;
+  }
+  return null;
+}
+
+async function getRobloxAvatarUrl(username) {
+  const userId = await getRobloxUserId(username);
+  if (!userId) return null;
+  return `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=48x48&format=Png&isCircular=false`;
+}
+
 
     // Render player list (in bracket tab)
     function renderPlayerList() {
