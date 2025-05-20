@@ -132,6 +132,19 @@
       color: #000;
       font-weight: 600;
       display: inline-block;
+      background-color: #ffc107; /* Bootstrap warning color */
+    }
+
+    /* Filter container */
+    #filter-container select {
+      margin-right: 1rem;
+      min-width: 150px;
+      background: #222;
+      color: #ffb400;
+      border: 1px solid #ffb400;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-weight: 600;
     }
   </style>
 </head>
@@ -171,7 +184,19 @@
     </div>
     <div class="tab-pane fade" id="leaderboard">
       <h3>📊 Elo Leaderboard</h3>
-      <div id="filter-container" style="margin-bottom: 1rem;"></div>
+
+      <div id="filter-container" class="mb-3">
+        <select id="tag-filter" title="Filter by Tag">
+          <option value="All" selected>All Tags</option>
+          <!-- tags will be filled dynamically -->
+        </select>
+
+        <select id="status-filter" title="Filter by Status">
+          <option value="All" selected>All Players</option>
+          <option value="Active">Active Only</option>
+          <option value="Eliminated">Eliminated Only</option>
+        </select>
+      </div>
 
       <!-- 🥇 Podium -->
       <div id="podium" class="podium"></div>
@@ -187,220 +212,185 @@
             <th>Losses</th>
             <th>Games Played</th>
             <th>Elo</th>
-            <th>Tags</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
+
     <div class="tab-pane fade" id="games">
-      <h3>🕹️ Game Roster</h3>
-      <p>Under Works</p>
+      <h3>🕹️ Games List</h3>
+      <p>Coming soon...</p>
     </div>
     <div class="tab-pane fade" id="schedule">
-      <h3>🗓️ Stream Schedule</h3>
-      <p>Under Works</p>
+      <h3>🗓️ Tournament Schedule</h3>
+      <p>Coming soon...</p>
     </div>
     <div class="tab-pane fade" id="merch">
-      <h3>🛒 Merch Store</h3>
-      <p>Coming Soon! Stay tuned for official KLZ Aced merch.</p>
+      <h3>🛒 Merchandise Store</h3>
+      <p>Coming soon...</p>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // Example mock data for testing
-    const players = [
-      {
-        refNum: 101,
-        name: "KLZ_Aced",
-        status: "Active",
-        tags: ["Top3", "Streamer"],
-        avatarURL: "https://www.roblox.com/headshot-thumbnail/image?userId=123456&width=48&height=48&format=png",
-        userID: 123456,
-        gameWins: 20,
-        tourneyWins: 5,
-        topFinishes: 15,
-        losses: 7,
-        gamesPlayed: 47,
-        elo: 3200
-      },
-      {
-        refNum: 102,
-        name: "FastPlayer",
-        status: "Active",
-        tags: ["Newcomer"],
-        avatarURL: "https://www.roblox.com/headshot-thumbnail/image?userId=654321&width=48&height=48&format=png",
-        userID: 654321,
-        gameWins: 15,
-        tourneyWins: 3,
-        topFinishes: 10,
-        losses: 10,
-        gamesPlayed: 38,
-        elo: 2800
-      },
-      {
-        refNum: 103,
-        name: "GamerGirl",
-        status: "Eliminated",
-        tags: [],
-        avatarURL: "https://www.roblox.com/headshot-thumbnail/image?userId=112233&width=48&height=48&format=png",
-        userID: 112233,
-        gameWins: 18,
-        tourneyWins: 2,
-        topFinishes: 8,
-        losses: 12,
-        gamesPlayed: 40,
-        elo: 2900
-      },
-      {
-        refNum: 104,
-        name: "ProSlayer",
-        status: "Active",
-        tags: ["Top3"],
-        avatarURL: "https://www.roblox.com/headshot-thumbnail/image?userId=445566&width=48&height=48&format=png",
-        userID: 445566,
-        gameWins: 22,
-        tourneyWins: 6,
-        topFinishes: 16,
-        losses: 5,
-        gamesPlayed: 49,
-        elo: 3350
-      },
-      {
-        refNum: 105,
-        name: "CasualPlayer",
-        status: "Active",
-        tags: [],
-        avatarURL: "https://www.roblox.com/headshot-thumbnail/image?userId=998877&width=48&height=48&format=png",
-        userID: 998877,
-        gameWins: 8,
-        tourneyWins: 0,
-        topFinishes: 3,
-        losses: 20,
-        gamesPlayed: 31,
-        elo: 2100
-      }
-    ];
+    // URL to your published Google Sheet CSV here:
+    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT2_wr_BqYz609qT5ajqqg7Dc9GIg0Y1fC9u26LnDWFuZbs_ItQfiRigpXkywopq5K4LuSRR25FaBAw/pub?output=csv';
 
-    // Sort players by elo descending
-    players.sort((a, b) => b.elo - a.elo);
-
-    // Utility: Roblox profile link
-    function profileLink(userID) {
-      return `https://www.roblox.com/users/${userID}/profile`;
-    }
-
-    // Generate tags HTML
-    function renderTags(tags) {
-      if (!tags || tags.length === 0) return '';
-      return tags.map(tag => `<span class="tag-badge bg-warning">${tag}</span>`).join('');
-    }
-
-    // Podium rendering - top 3 players
-    function renderPodium(players) {
-      const podiumEl = document.getElementById('podium');
-      podiumEl.innerHTML = ''; // clear
-
-      // Defensive: At least 3 players needed
-      if (players.length < 3) {
-        podiumEl.innerHTML = `<p>Not enough players for podium.</p>`;
-        return;
-      }
-
-      const top3 = [players[1], players[0], players[2]]; // order: 2nd, 1st, 3rd for podium style
-
-      const podiumMap = [
-        { place: 2, player: top3[0], cssClass: 'podium-2', medal: '🥈' },
-        { place: 1, player: top3[1], cssClass: 'podium-1', medal: '🥇' },
-        { place: 3, player: top3[2], cssClass: 'podium-3', medal: '🥉' },
-      ];
-
-      podiumMap.forEach(({place, player, cssClass, medal}) => {
-        if (!player) return;
-        const el = document.createElement('div');
-        el.className = `podium-spot ${cssClass}`;
-        el.innerHTML = `
-          <img src="${player.avatarURL}" alt="${player.name}" title="${player.name}" />
-          <div class="podium-rank">${medal} #${place}</div>
-          <div><a href="${profileLink(player.userID)}" target="_blank" rel="noopener noreferrer" style="color:#ffb400; font-weight:700;">${player.name}</a></div>
-          <div style="font-weight:600; color:#eee;">Elo: ${player.elo}</div>
-        `;
-        podiumEl.appendChild(el);
+    // Utility function to parse CSV into objects array
+    function csvToObjects(csvText) {
+      const lines = csvText.trim().split('\n');
+      const headers = lines.shift().split(',');
+      return lines.map(line => {
+        const data = line.split(',');
+        let obj = {};
+        headers.forEach((h, i) => obj[h.trim()] = data[i] ? data[i].trim() : '');
+        return obj;
       });
     }
 
-    // Leaderboard table render
+    // Load player data from CSV
+    async function loadPlayerData() {
+      try {
+        const response = await fetch(GOOGLE_SHEET_CSV_URL);
+        if (!response.ok) throw new Error('Failed to load player data.');
+        const csvText = await response.text();
+        const players = csvToObjects(csvText);
+
+        // Parse numbers and arrays
+        players.forEach(p => {
+          p['Game Wins'] = Number(p['Game Wins']) || 0;
+          p['Tourney Wins'] = Number(p['Tourney Wins']) || 0;
+          p['Top Finishes'] = Number(p['Top Finishes']) || 0;
+          p['Losses'] = Number(p['Losses']) || 0;
+          p['Games Played'] = Number(p['Games Played']) || 0;
+          p.Elo = Number(p.Elo) || 0;
+          p.Tags = p.Tags ? p.Tags.split(';').map(t => t.trim()) : [];
+          p.Status = p.Status || 'Active';
+        });
+
+        return players;
+      } catch (err) {
+        console.error(err);
+        alert('Could not load player data.');
+        return [];
+      }
+    }
+
+    // Render leaderboard table and podium
     function renderLeaderboard(players) {
+      // Sort players by Elo descending
+      const sortedPlayers = [...players].sort((a, b) => b.Elo - a.Elo);
+
+      // Podium: top 3
+      const podiumContainer = document.getElementById('podium');
+      podiumContainer.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const player = sortedPlayers[i];
+        if (!player) continue;
+
+        const podiumSpot = document.createElement('div');
+        podiumSpot.classList.add('podium-spot', `podium-${i + 1}`);
+        podiumSpot.innerHTML = `
+          <img src="${player.AvatarURL}" alt="${player.Name} Avatar" title="${player.Name}" />
+          <div class="podium-rank">${i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : '🥉 3rd'}</div>
+          <div>${player.Name}</div>
+          <div>Elo: ${player.Elo}</div>
+        `;
+        podiumContainer.appendChild(podiumSpot);
+      }
+
+      // Leaderboard table rows
       const tbody = document.querySelector('#leaderboard-table tbody');
       tbody.innerHTML = '';
-      players.forEach((p, i) => {
-        const tr = document.createElement('tr');
-        tr.style.opacity = p.status === 'Eliminated' ? 0.5 : 1;
 
+      sortedPlayers.forEach((p, idx) => {
+        // Status badge
+        const statusColor = p.Status.toLowerCase() === 'eliminated' ? 'danger' : 'success';
+        const tagSpans = p.Tags.map(tag => `<span class="tag-badge">${tag}</span>`).join(' ');
+
+        const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${i + 1}</td>
+          <td>${idx + 1} ${idx < 3 ? `<span class="rank-badge rank-${idx + 1}">&#x2B50;</span>` : ''}</td>
           <td>
-            <img class="avatar" src="${p.avatarURL}" alt="${p.name}" 
-              onerror="this.onerror=null;this.src='https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png'" />
-            <a href="${profileLink(p.userID)}" target="_blank" rel="noopener noreferrer" style="color:#ffb400; font-weight:600;">
-              ${p.name}
+            <a href="https://www.roblox.com/users/${p.UserID}/profile" target="_blank" style="color:#ffb400; text-decoration:none;">
+              <img src="${p.AvatarURL}" alt="${p.Name}" class="avatar" />
+              ${p.Name}
             </a>
-            ${p.status === 'Eliminated' ? '<span class="badge bg-danger ms-1">Eliminated</span>' : ''}
+            ${tagSpans}
           </td>
-          <td>${p.gameWins}</td>
-          <td>${p.tourneyWins}</td>
-          <td>${p.topFinishes}</td>
-          <td>${p.losses}</td>
-          <td>${p.gamesPlayed}</td>
-          <td>${p.elo}</td>
-          <td>${renderTags(p.tags)}</td>
+          <td>${p['Game Wins']}</td>
+          <td>${p['Tourney Wins']}</td>
+          <td>${p['Top Finishes']}</td>
+          <td>${p['Losses']}</td>
+          <td>${p['Games Played']}</td>
+          <td>${p.Elo}</td>
+          <td><span class="badge bg-${statusColor}">${p.Status}</span></td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Update Board content render
-    function renderUpdateBoard(players) {
-      const container = document.getElementById('update-board-content');
-      container.innerHTML = `
-        <p>Welcome to the KLZ Aced Tournament Update Board! Here are some highlights:</p>
-        <ul>
-          <li><strong>Total Players:</strong> ${players.length}</li>
-          <li><strong>Active Players:</strong> ${players.filter(p => p.status === 'Active').length}</li>
-          <li><strong>Eliminated Players:</strong> ${players.filter(p => p.status === 'Eliminated').length}</li>
-          <li><strong>Top Elo:</strong> ${players[0].elo} by ${players[0].name}</li>
-        </ul>
-        <p>Good luck to all participants! Check the Leaderboard for rankings.</p>
-      `;
+    // Filter players by tag and status
+    function filterPlayers(players, tagFilter, statusFilter) {
+      return players.filter(p => {
+        // Filter by status
+        if (statusFilter === 'Active' && p.Status.toLowerCase() !== 'active') return false;
+        if (statusFilter === 'Eliminated' && p.Status.toLowerCase() !== 'eliminated') return false;
 
-      // Also list some player cards
-      const playerList = document.getElementById('player-list');
-      playerList.innerHTML = players.map(p => `
-        <div class="col">
-          <div class="card bg-dark text-light h-100 shadow-sm border-warning">
-            <div class="card-body d-flex align-items-center">
-              <img src="${p.avatarURL}" alt="${p.name}" class="avatar" 
-                onerror="this.onerror=null;this.src='https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png'"/>
-              <div>
-                <h5 class="card-title mb-1">${p.name} ${p.status === 'Eliminated' ? '<span class="badge bg-danger">Eliminated</span>' : ''}</h5>
-                <p class="card-text small mb-0">Elo: ${p.elo} | Games Played: ${p.gamesPlayed}</p>
-                <p class="card-text small">${renderTags(p.tags)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      `).join('');
+        // Filter by tag
+        if (tagFilter !== 'All' && !p.Tags.includes(tagFilter)) return false;
+
+        return true;
+      });
     }
 
-    // Initialize everything on page load
-    window.onload = () => {
-      renderPodium(players);
-      renderLeaderboard(players);
-      renderUpdateBoard(players);
-    };
-  </script>
+    // Populate tag filter options based on unique tags found
+    function populateTagFilter(players) {
+      const tagSet = new Set();
+      players.forEach(p => p.Tags.forEach(t => tagSet.add(t)));
 
+      const tagFilter = document.getElementById('tag-filter');
+      // Clear existing options except All
+      tagFilter.querySelectorAll('option:not([value="All"])').forEach(o => o.remove());
+
+      Array.from(tagSet).sort().forEach(tag => {
+        const opt = document.createElement('option');
+        opt.value = tag;
+        opt.textContent = tag;
+        tagFilter.appendChild(opt);
+      });
+    }
+
+    async function init() {
+      const players = await loadPlayerData();
+
+      // Populate filters
+      populateTagFilter(players);
+
+      // Initial render
+      let filteredPlayers = players;
+      renderLeaderboard(filteredPlayers);
+
+      // Set up filter event listeners
+      const tagFilter = document.getElementById('tag-filter');
+      const statusFilter = document.getElementById('status-filter');
+
+      function onFilterChange() {
+        const tagValue = tagFilter.value;
+        const statusValue = statusFilter.value;
+        const filtered = filterPlayers(players, tagValue, statusValue);
+        renderLeaderboard(filtered);
+      }
+
+      tagFilter.addEventListener('change', onFilterChange);
+      statusFilter.addEventListener('change', onFilterChange);
+    }
+
+    // Run init after page load
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>
