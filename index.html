@@ -207,15 +207,17 @@
         const columns = row.split(",");
         // Expected order:
         // Player, RobloxUser, GameWins, TourneyWins, Placements, Losses, Elo, AvatarURL, Tags
-        const Player = columns[0]?.trim() || "";
-        const RobloxUser = columns[1]?.trim() || "";
-        const GameWins = Number(columns[2]) || 0;
-        const TourneyWins = Number(columns[3]) || 0;
-        const Placements = Number(columns[4]) || 0;
-        const Losses = Number(columns[5]) || 0;
-        let Elo = Number(columns[6]) || 0;
-        const AvatarURL = columns[7]?.trim() || "";
-        const TagsRaw = columns[8]?.trim() || "";
+const Player = columns[0]?.trim() || "Unknown";
+const RobloxUser = columns[1]?.trim() || "";
+const GameWins = Number(columns[2]) || 0;
+const TourneyWins = Number(columns[3]) || 0;
+const TopFinishes = Number(columns[4]) || 0;
+const Losses = Number(columns[5]) || 0;
+const GamesPlayed = Number(columns[6]) || 0;
+let Elo = Number(columns[7]) || 0;
+const TagsRaw = columns[8]?.trim() || "";
+const AvatarURL = columns[9]?.trim() || "";
+
 
         // Calculate Elo if zero or missing
         if (!Elo) {
@@ -233,7 +235,7 @@
           Tags = [TagsRaw];
         }
 
-        return { Player, RobloxUser, GameWins, TourneyWins, Placements, Losses, Elo, AvatarURL, Tags };
+        return { Player, RobloxUser, GameWins, TourneyWins, Placements, Losses, Elo, Tags, AvatarURL };
       });
 
       allPlayers.sort((a, b) => b.Elo - a.Elo); // Sort descending Elo
