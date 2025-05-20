@@ -221,11 +221,9 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // URLs of CSV files from your Google Sheets export
     const leaderboardCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQv_3tGkThlY9BkHxw39gwUHz6GkHgtW5X5lU9nN4Dz7R6Hywt4AkRFPVHzizc_rZlgJqVEmWqPg5WQ/pub?gid=0&single=true&output=csv';
     const playerListCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQv_3tGkThlY9BkHxw39gwUHz6GkHgtW5X5lU9nN4Dz7R6Hywt4AkRFPVHzizc_rZlgJqVEmWqPg5WQ/pub?gid=1150938954&single=true&output=csv';
 
-    // Basic CSV parser to array of objects
     function parseCSV(text) {
       const lines = text.trim().split('\n');
       const headers = lines[0].split(',').map(h => h.trim());
@@ -237,14 +235,12 @@
       });
     }
 
-    // Fetch and parse CSV
     async function fetchCsvData(url) {
       const response = await fetch(url);
       const text = await response.text();
       return parseCSV(text);
     }
 
-    // Utility: create element with attrs & children
     function el(tag, attrs = {}, ...children) {
       const e = document.createElement(tag);
       for (const k in attrs) {
@@ -259,71 +255,76 @@
       return e;
     }
 
-    // Merge player info by PlayerID/PlayerRefNumber
     function mergePlayerData(leaderboard, players) {
-  const playerMap = new Map(players.map(p => [p['PlayerRefNumber'], p]));
-  return leaderboard.map(entry => {
-    const playerInfo = playerMap.get(entry.PlayerRefNumber) || {};
-    return {
-      ...entry,
-      PlayerName: playerInfo.PlayerName || 'Unknown',
-      PlayerID: playerInfo.PlayerID || 'N/A',
-      AvatarURL: playerInfo.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png',
-      Status: playerInfo.Status || 'Unknown',
-      Tags: entry.Tags || ''
-    };
-  });
-}
+      const playerMap = new Map(players.map(p => [p['PlayerRefNumber'], p]));
+      return leaderboard.map(entry => {
+        const playerInfo = playerMap.get(entry.PlayerRefNumber) || {};
+        return {
+          ...entry,
+          PlayerName: playerInfo.PlayerName || 'Unknown',
+          PlayerID: playerInfo.PlayerID || 'N/A',
+          AvatarURL: playerInfo.AvatarURL || 'https://www.roblox.com/headshot-thumbnail/image?userId=1&width=48&height=48&format=png',
+          Status: playerInfo.Status || 'Unknown',
+          Tags: entry.Tags || ''
+        };
+      });
+    }
 
+    function createPlayerCard(player) {
+      const avatarUrl = player.AvatarURL;
+      const status = player.Status || 'Unknown';
 
-    // Create player card for bracket tab
-   function createPlayerCard(player) {
-  const avatarUrl = player.AvatarURL;
-  const status = player.Status || 'Unknown';
+      const card = el('div', {class: 'player-card'});
+      const avatar = el('img', {src: avatarUrl, alt: player.PlayerName, class: 'avatar'});
+      const name = el('span', {}, player.PlayerName || 'Unknown Player');
+      const statusLabel = el('span', {class: `player-status status-${status}`}, status);
 
-  const card = el('div', {class: 'player-card'});
-  const avatar = el('img', {src: avatarUrl, alt: player.PlayerName, class: 'avatar'});
-  const name = el('span', {}, player.PlayerName || 'Unknown Player');
+      card.appendChild(avatar);
+      card.appendChild(name);
+      card.appendChild(statusLabel);
 
-  const statusLabel = el('span', {class: `player-status status-${status}`}, status);
+      return card;
+    }
 
-  card.appendChild(avatar);
-  card.appendChild(name);
-  card.appendChild(statusLabel);
+    function createLeaderboardRow(player, rank) {
+      const avatarUrl = player.AvatarURL;
+      const tr = el('tr');
 
-  return card;
-}
+      const rankTd = el('td', {}, rank);
+      const playerTd = el('td', {style: 'white-space: nowrap; display:flex; align-items:center; gap: 0.5rem;'});
+      const avatarImg = el('img', {src: avatarUrl, alt: player.PlayerName, class: 'avatar'});
+      const nameBlock = el('div', {});
+      nameBlock.appendChild(el('div', {}, player.PlayerName));
+      const profileLink = el('a', {
+        href: `https://www.roblox.com/users/${player.PlayerID}/profile`,
+        target: '_blank',
+        style: 'color: #ccc; text-decoration: none;'
+      }, `@${player.PlayerID}`);
+      nameBlock.appendChild(profileLink);
 
-    // Create leaderboard table rows
-function createLeaderboardRow(player, rank) {
-  const avatarUrl = player.AvatarURL;
-  const tr = el('tr');
+      if (player.Tags) {
+        const tagSpan = el('span', {
+          class: 'player-tag',
+          style: 'font-size: 0.75rem; margin-top: 2px; display: inline-block; background: #222; color: #ffd700; padding: 2px 6px; border-radius: 6px;'
+        }, `⭐ ${player.Tags}`);
+        nameBlock.appendChild(tagSpan);
+      }
 
-  const rankTd = el('td', {}, rank);
-  const playerTd = el('td', {style: 'white-space: nowrap; display:flex; align-items:center; gap: 0.5rem;'});
-  const avatarImg = el('img', {src: avatarUrl, alt: player.PlayerName, class: 'avatar'});
-  const nameBlock = el('div', {});
-  nameBlock.appendChild(el('div', {}, player.PlayerName));
-  nameBlock.appendChild(el('small', {style: 'color: #ccc;'}, `@${player.PlayerID}`));
-  if (player.Tags) nameBlock.appendChild(el('div', {style: 'font-size: 0.75rem; color: #ffb400;'}, player.Tags));
+      playerTd.appendChild(avatarImg);
+      playerTd.appendChild(nameBlock);
 
-  playerTd.appendChild(avatarImg);
-  playerTd.appendChild(nameBlock);
+      tr.appendChild(rankTd);
+      tr.appendChild(playerTd);
+      tr.appendChild(el('td', {}, player.GameWins || '0'));
+      tr.appendChild(el('td', {}, player.TourneyWins || '0'));
+      tr.appendChild(el('td', {}, player.TopFinishes || '0'));
+      tr.appendChild(el('td', {}, player.Losses || '0'));
+      tr.appendChild(el('td', {}, player.GamesPlayed || '0'));
+      tr.appendChild(el('td', {}, player.Elo || '0'));
 
-  tr.appendChild(rankTd);
-  tr.appendChild(playerTd);
-  tr.appendChild(el('td', {}, player.GameWins || '0'));
-  tr.appendChild(el('td', {}, player.TourneyWins || '0'));
-  tr.appendChild(el('td', {}, player.TopFinishes || '0'));
-  tr.appendChild(el('td', {}, player.Losses || '0'));
-  tr.appendChild(el('td', {}, player.GamesPlayed || '0'));
-  tr.appendChild(el('td', {}, player.Elo || '0'));
+      return tr;
+    }
 
-  return tr;
-}
-
-
-    // Render podium top 3 players
     function renderPodium(players) {
       const podiumDiv = document.getElementById('podium');
       podiumDiv.innerHTML = '';
@@ -332,88 +333,57 @@ function createLeaderboardRow(player, rank) {
 
       const [second, first, third] = [players[1], players[0], players[2]];
 
-      // Helper to create a podium spot
-      function createSpot(player, place) {
-        if (!player) return el('div', {class: `podium-spot podium-${place}`}, 'N/A');
-        const spot = el('div', {class: `podium-spot podium-${place}`});
-        const avatar = el('img', {src: player.Avatar, alt: player.Name || 'Player'});
-        const name = el('div', {}, player.Name);
-        const rank = el('div', {class: 'podium-rank'}, `#${place}`);
-
-        spot.appendChild(avatar);
-        spot.appendChild(name);
-        spot.appendChild(rank);
-
-        return spot;
+      function makeSpot(player, className, placeText) {
+        return el('div', {class: `podium-spot ${className}`},
+          el('img', {src: player.AvatarURL, alt: player.PlayerName}),
+          el('div', {class: 'podium-rank'}, `${placeText}: ${player.PlayerName}`)
+        );
       }
 
-      podiumDiv.appendChild(createSpot(second, 2));
-      podiumDiv.appendChild(createSpot(first, 1));
-      podiumDiv.appendChild(createSpot(third, 3));
+      podiumDiv.appendChild(makeSpot(second, 'podium-2', '2nd'));
+      podiumDiv.appendChild(makeSpot(first, 'podium-1', '1st'));
+      podiumDiv.appendChild(makeSpot(third, 'podium-3', '3rd'));
     }
 
-    // Sorting function: Elo descending
-    function sortLeaderboard(players) {
-      return players.slice().sort((a, b) => (parseInt(b.Elo) || 0) - (parseInt(a.Elo) || 0));
-    }
+    async function loadData() {
+      const [leaderboardData, playerList] = await Promise.all([
+        fetchCsvData(leaderboardCsvUrl),
+        fetchCsvData(playerListCsvUrl)
+      ]);
 
-    // Filter by active players
-    function filterActivePlayers(players, activeOnly) {
-      if (!activeOnly) return players;
-      return players.filter(p => (p.Status || '').toLowerCase() === 'active');
-    }
+      const mergedData = mergePlayerData(leaderboardData, playerList);
 
-    // Main load function
-    async function loadTournamentData() {
-      try {
-        // Fetch CSVs in parallel
-        const [leaderboardRaw, playersRaw] = await Promise.all([
-          fetchCsvData(leaderboardCsvUrl),
-          fetchCsvData(playerListCsvUrl),
-        ]);
+      // Sort by Elo (descending)
+      mergedData.sort((a, b) => parseInt(b.Elo || 0) - parseInt(a.Elo || 0));
 
-        // Merge player info into leaderboard entries
-        const leaderboardMerged = mergePlayerData(leaderboardRaw, playersRaw);
+      // Fill leaderboard
+      const tbody = document.querySelector('#leaderboard-table tbody');
+      tbody.innerHTML = '';
+      mergedData.forEach((player, index) => {
+        tbody.appendChild(createLeaderboardRow(player, index + 1));
+      });
 
-        // Also add Status to leaderboard players from playersRaw map for filtering
-        const playerMapStatus = new Map(playersRaw.map(p => [p.PlayerRefNumber, p.Status || 'Unknown']));
-        leaderboardMerged.forEach(p => {
-          p.Status = playerMapStatus.get(p.PlayerRefNumber) || 'Unknown';
+      renderPodium(mergedData);
+
+      // Fill bracket
+      const playerListDiv = document.getElementById('player-list');
+      playerListDiv.innerHTML = '';
+      mergedData.forEach(player => {
+        playerListDiv.appendChild(createPlayerCard(player));
+      });
+
+      // Checkbox filtering
+      const checkbox = document.getElementById('filter-active');
+      checkbox.addEventListener('change', () => {
+        const rows = document.querySelectorAll('#leaderboard-table tbody tr');
+        rows.forEach((row, i) => {
+          const player = mergedData[i];
+          row.style.display = checkbox.checked && player.Status !== 'Active' ? 'none' : '';
         });
-
-        // Render bracket tab player list
-        const playerListContainer = document.getElementById('player-list');
-        playerListContainer.innerHTML = '';
-        playersRaw.forEach(player => {
-          const card = createPlayerCard(player);
-          playerListContainer.appendChild(card);
-        });
-
-        // Leaderboard tab render
-        const leaderboardTableBody = document.querySelector('#leaderboard-table tbody');
-        const filterCheckbox = document.getElementById('filter-active');
-
-        function updateLeaderboard() {
-          const filtered = filterActivePlayers(leaderboardMerged, filterCheckbox.checked);
-          const sorted = sortLeaderboard(filtered);
-          leaderboardTableBody.innerHTML = '';
-          sorted.forEach((player, idx) => {
-            leaderboardTableBody.appendChild(createLeaderboardRow(player, idx + 1));
-          });
-          renderPodium(sorted);
-        }
-
-        filterCheckbox.addEventListener('change', updateLeaderboard);
-        updateLeaderboard();
-
-      } catch (err) {
-        console.error('Error loading tournament data:', err);
-        alert('Failed to load tournament data. Please try again later.');
-      }
+      });
     }
 
-    // Run on page load
-    loadTournamentData();
+    loadData();
   </script>
 </body>
 </html>
